@@ -8,7 +8,7 @@ De pagina is overgezet uit een Claude-artifact (stand 25 november 2026). Werking
 
 Inloggen gaat met het centrale Blom-account, hetzelfde als op de startpagina (blominterieurs.github.io) en in de Collectiekeuze. Staat de pagina op hetzelfde adres als de startpagina, dan deelt ze de inlog: wie op de startpagina is ingelogd, is hier automatisch ingelogd, en andersom.
 
-Toegang heeft wie op de gebruikerslijst van de Collectiekeuze staat. Accounts beheer je daar (Menu, Gebruikers); er is geen aparte lijst voor de kerstkaarten.
+Toegang heeft wie een account heeft én bij wie het vinkje "Kerstkaarten 2026" aan staat; beheerders zien altijd alles. Accounts en vinkjes beheer je in de Collectiekeuze (Menu, Gebruikers). De vinkjes staan in Supabase in het schema `gebruikersbeheer` (tabellen `apps` en `zichtbaarheid`); de database controleert ze via `public.mag_app`.
 
 ## Waar de gegevens staan
 

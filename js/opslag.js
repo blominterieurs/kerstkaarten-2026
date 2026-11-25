@@ -2,7 +2,8 @@
    - Inloggen gaat met het centrale Blom-account. De pagina staat op hetzelfde adres als de startpagina
      (blominterieurs.github.io/...) en deelt daardoor de inlog: wie op de startpagina of in een andere
      Blom-app is ingelogd, is hier automatisch ingelogd, en andersom.
-   - Toegang heeft wie op de gebruikerslijst van de Collectiekeuze staat.
+   - Toegang heeft wie een account heeft en voor wie de kerstkaarten zichtbaar zijn gezet
+     (schema gebruikersbeheer); beheerders zien altijd alles.
    - De relatiegegevens staan niet in de pagina: ze komen na het inloggen uit de database
      (kerstkaarten_2026_gegevens). Aanpassingen en toegevoegde kaarten gaan via
      kerstkaarten_2026_lees en kerstkaarten_2026_zet. */
