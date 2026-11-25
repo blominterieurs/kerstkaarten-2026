@@ -1,0 +1,6 @@
+.claude/
+*.xlsx
+desktop.ini
+Thumbs.db
+# relatiegegevens staan in de database, niet in de repo
+data/
