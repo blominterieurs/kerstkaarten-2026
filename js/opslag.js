@@ -101,7 +101,10 @@
   window.KERST = {
     // js/app.js roept dit aan zodra de pagina is opgebouwd
     async koppel(start) {
-      const gebruiker = { id: async () => email, can: async () => true, profiles: async () => ({}) };
+      // alleen lezen of ook bewerken: per persoon ingesteld in het gebruikersbeheer (de database controleert het ook)
+      const { data: magBewerken } = await sb.rpc('mag_app_bewerken', { p_app: 'kerstkaarten-2026' });
+      if (magBewerken !== true) $('lgTekst').textContent = 'Ingelogd als ' + email + ' · alleen lezen';
+      const gebruiker = { id: async () => email, can: async () => magBewerken === true, profiles: async () => ({}) };
       await laad().catch(() => {});
       await start(DB, gebruiker);
       // collega's passen ook aan: elke 20 seconden opnieuw ophalen zolang het tabblad zichtbaar is
