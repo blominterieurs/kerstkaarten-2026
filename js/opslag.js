@@ -94,7 +94,7 @@
     $('login').hidden = false;
     document.body.classList.remove('dicht');
     const s = document.createElement('script');   // de pagina zelf start pas nu, met de gegevens
-    s.src = 'js/app.js';
+    s.src = 'js/app.js?v=20261126-1515';   // versie in de naam: na een update laadt de browser nooit een oude app.js bij een nieuwe pagina
     document.body.appendChild(s);
   }
 

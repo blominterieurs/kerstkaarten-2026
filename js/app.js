@@ -34,7 +34,7 @@ const pkgOf=c=>c.adv!=="stuur"?"niet":(c.gift||"kaart");
 const amOf=c=>c.am||"Onbekend";
 function qOK(c){const q=$("q").value.trim().toLowerCase();return !q||[c.org,c.cp,c.pc,c.plaats,c.adr].join(" ").toLowerCase().includes(q)}
 const pass=(c,skip)=>qOK(c)&&(skip==="pkg"||F.pkg.has(pkgOf(c)))&&(skip==="lab"||F.lab.has(labOf(c)))&&(skip==="am"||F.am.has(amOf(c)))&&(skip==="chg"||!F.chg.has("ja")||!!(c._e&&c._e.hist&&c._e.hist.length))&&(skip==="taal"||F.taal.has(taalOf(c)))&&(skip==="land"||F.land.has(landOf(c)));
-function boxes(el,key,opts,fn){const R=CARDS.filter(c=>pass(c,key));
+function boxes(el,key,opts,fn){if(!el)return;const R=CARDS.filter(c=>pass(c,key));
   el.innerHTML=opts.map(([v,t,col])=>`<label class="box${col?" lab":""}"${col?` style="--c:${col}"`:""}><input type="checkbox" data-k="${key}" value="${esc(v)}"${F[key].has(v)?" checked":""}>${col?`<i class="sw" style="background:${col}"></i>`:""}${t} <span class="n">${R.filter(c=>fn(c)===v).length}</span></label>`).join("")}
 function panel(){seen("taal",vals(taalOf));seen("land",vals(landOf));
   {const R=CARDS.filter(c=>pass(c,"pkg")),n=v=>R.filter(c=>pkgOf(c)===v).length;
