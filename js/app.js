@@ -145,7 +145,9 @@ function openEd(i){const c=CARDS[i],b=BASE[i];CURI=i;MODE="edit";const dl=$("dlg
  setR(f,"adv",c.adv);setR(f,"gift",c.gift||"");["cp","fn","org","adr","pc","plaats","land","txt"].forEach(k=>f[k].value=c[k]||"");f.note.value="";f.naam.value=getNaam();$("eErr").textContent="";
  f.querySelectorAll(".orig").forEach(o=>{const k=o.dataset.o;o.textContent=(c._e&&c._e.cur&&k in c._e.cur)?"Origineel: "+fv(k,b[k]).slice(0,120):""});
  syncEd();$("dlg").showModal()}
-function syncEd(e){const f=$("edf");if(MODE==="add"&&e&&e.target&&e.target.name==="am"){f.txt.value=f.txt.value.replace(/\n[^\n]*, namens het hele team van Blom\s*$/,"\n"+f.am.value+", namens het hele team van Blom")}$("eGift").classList.toggle("dis",f.adv.value!=="stuur");const n=f.txt.value.length;const cc=$("eCC");cc.textContent=n+" / 550 tekens";cc.classList.toggle("over",n>550)}
+// Natascha Waanders ondertekent namens het team, zonder eigen naam op de kaart
+function afsluiting(am){return am==="Natascha Waanders"?"Namens het hele team van Blom":am+", namens het hele team van Blom"}
+function syncEd(e){const f=$("edf");if(MODE==="add"&&e&&e.target&&e.target.name==="am"){f.txt.value=f.txt.value.replace(/\n[^\n]*[Nn]amens het hele team van Blom\s*$/,"\n"+afsluiting(f.am.value))}$("eGift").classList.toggle("dis",f.adv.value!=="stuur");const n=f.txt.value.length;const cc=$("eCC");cc.textContent=n+" / 550 tekens";cc.classList.toggle("over",n>550)}
 async function writeEdit(i,vals,note,naam){const b=BASE[i],c=CARDS[i];if(vals.adv!=="stuur")vals.gift="";
  const changes=[];EF.forEach(([f])=>{const a=(c[f]??"")+"",z=(vals[f]??"")+"";if(a!==z)changes.push({f,from:a,to:z})});
  if(!changes.length)return "none";
@@ -155,7 +157,7 @@ async function writeEdit(i,vals,note,naam){const b=BASE[i],c=CARDS[i];if(vals.ad
 function openAdd(){MODE="add";CURI=-1;const dl=$("dlg"),f=$("edf");dl.classList.add("add");dl.classList.remove("cannew");$("dlgT").textContent="Kaart toevoegen";$("dlgS").textContent="Een nieuwe relatie die dit jaar een kaart krijgt";$("eSave").textContent="Kaart toevoegen";
  f.seg.innerHTML=LABS.map(l=>`<option>${l[0]}</option>`).join("");f.am.innerHTML=AMS.filter(a=>a!=="Onbekend").map(a=>`<option>${esc(a)}</option>`).join("");
  setR(f,"adv","stuur");setR(f,"gift","");["cp","fn","org","adr","pc","plaats"].forEach(k=>f[k].value="");f.land.value="Nederland";f.note.value="";f.naam.value=getNaam();
- f.txt.value="Beste ,\n\nFijne kerstdagen en een gezond en voorspoedig 2027 gewenst!\nHartelijke groet,\n"+f.am.value+", namens het hele team van Blom";
+ f.txt.value="Beste ,\n\nFijne kerstdagen en een gezond en voorspoedig 2027 gewenst!\nHartelijke groet,\n"+afsluiting(f.am.value);
  f.querySelectorAll(".orig").forEach(o=>o.textContent="");$("eErr").textContent="";syncEd();dl.showModal();f.org.focus()}
 $("addBtn").onclick=openAdd;
 $("lbX").onclick=()=>$("lb").close();$("lb").addEventListener("click",e=>{if(e.target.id==="lb")$("lb").close()});
