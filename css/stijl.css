@@ -330,3 +330,4 @@ body.dicht .inlog{display:grid}
 
 .box .flag{width:16px;height:11px;flex:none;display:block;outline:.5px solid rgba(0,0,0,.25)}
 .box:has(input:not(:checked)) .flag{filter:grayscale(1);opacity:.55}
+.grp:has(.pk) legend{padding-top:24px}
