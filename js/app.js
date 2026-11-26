@@ -15,6 +15,20 @@ const AMS=[...new Set(CARDS.map(c=>c.am||"Onbekend"))].sort();
 const TAALN={NL:"Nederlands",DE:"Duits",EN:"Engels",SL:"Sloveens"};
 function taalOf(c){const t=String(c.txt||"");if(/\b(Spoštovani|Vesel božič|Lep pozdrav|v imenu)/i.test(t))return "Sloveens";if(/\b(im Namen|Sehr geehrte|Liebe[rs]? |Frohe Weihnachten|Herzliche)/i.test(t))return "Duits";if(/\b(on behalf of|Dear |Merry Christmas|Kind regards)/i.test(t))return "Engels";if(/\b(namens|Beste |Geachte |Fijne kerstdagen|Hartelijke groet)/i.test(t))return "Nederlands";return TAALN[c.taal]||"Nederlands"}
 const landOf=c=>{const l=String(c.land||"").trim();return l?l.charAt(0).toUpperCase()+l.slice(1):"Nederland"};
+/* Kleine vlaggetjes (inline SVG, 3:2) voor de filters Taal en Land */
+const FH=(a,b,c)=>`<rect width="3" height="2" fill="${c}"/><rect width="3" height="1.333" fill="${b}"/><rect width="3" height=".667" fill="${a}"/>`;
+const FV=(a,b,c)=>`<rect width="3" height="2" fill="${c}"/><rect width="2" height="2" fill="${b}"/><rect width="1" height="2" fill="${a}"/>`;
+const UK=`<rect width="3" height="2" fill="#012169"/><path d="M0 0L3 2M3 0L0 2" stroke="#fff" stroke-width=".4"/><path d="M0 0L3 2M3 0L0 2" stroke="#C8102E" stroke-width=".15"/><path d="M1.5 0V2M0 1H3" stroke="#fff" stroke-width=".6"/><path d="M1.5 0V2M0 1H3" stroke="#C8102E" stroke-width=".35"/>`;
+const FLAG={Nederland:FH("#AE1C28","#FFF","#21468B"),Duitsland:FH("#000","#DD0000","#FFCE00"),Oostenrijk:`<rect width="3" height="2" fill="#C8102E"/><rect y=".667" width="3" height=".667" fill="#FFF"/>`,
+ "België":FV("#000","#FDDA24","#EF3340"),"Italië":FV("#009246","#FFF","#CE2B37"),Frankrijk:FV("#002654","#FFF","#CE1126"),
+ "Slovenië":FH("#FFF","#0057B8","#ED1C24")+`<path d="M.55 .35h.5v.45c0 .25-.25.38-.25.38s-.25-.13-.25-.38z" fill="#0057B8" stroke="#ED1C24" stroke-width=".06"/>`,
+ Zwitserland:`<rect width="3" height="2" fill="#DA291C"/><path d="M1.35 .5h.3v.35h.35v.3h-.35v.35h-.3v-.35H1v-.3h.35z" fill="#FFF"/>`,
+ "Verenigd Koninkrijk":UK,
+ Curacao:`<rect width="3" height="2" fill="#002B7F"/><rect y="1.25" width="3" height=".25" fill="#F9E814"/><circle cx=".5" cy=".45" r=".13" fill="#FFF"/><circle cx=".85" cy=".75" r=".17" fill="#FFF"/>`,
+ Aruba:`<rect width="3" height="2" fill="#418FDE"/><rect y="1.33" width="3" height=".11" fill="#FBE122"/><rect y="1.55" width="3" height=".11" fill="#FBE122"/><path d="M.5 .2l.09.29.29.09-.29.09L.5 .96.41.67.12.58.41.49z" fill="#EF3340" stroke="#FFF" stroke-width=".04"/>`,
+ Kosovo:`<rect width="3" height="2" fill="#244AA5"/><path d="M1.1 .95l.25-.12.3.05.2.12.05.25-.15.25-.3-.05-.25-.18z" fill="#D0A650"/>`};
+const TFLAG={Nederlands:"Nederland",Duits:"Duitsland",Engels:"Verenigd Koninkrijk",Sloveens:"Slovenië"};
+const flag=l=>FLAG[l]?`<svg class="flag" viewBox="0 0 3 2" aria-hidden="true">${FLAG[l]}</svg>`:"";
 const ORDER=v=>v==="Nederland"||v==="Nederlands"?"0":"1"+v;
 const vals=fn=>[...new Set(CARDS.map(fn))].sort((a,b)=>ORDER(a).localeCompare(ORDER(b),"nl"));
 // nieuwe talen of landen (bijv. via een toegevoegde kaart) staan standaard aan
@@ -35,7 +49,7 @@ const amOf=c=>c.am||"Onbekend";
 function qOK(c){const q=$("q").value.trim().toLowerCase();return !q||[c.org,c.cp,c.pc,c.plaats,c.adr].join(" ").toLowerCase().includes(q)}
 const pass=(c,skip)=>qOK(c)&&(skip==="pkg"||F.pkg.has(pkgOf(c)))&&(skip==="lab"||F.lab.has(labOf(c)))&&(skip==="am"||F.am.has(amOf(c)))&&(skip==="chg"||!F.chg.has("ja")||!!(c._e&&c._e.hist&&c._e.hist.length))&&(skip==="taal"||F.taal.has(taalOf(c)))&&(skip==="land"||F.land.has(landOf(c)));
 function boxes(el,key,opts,fn){if(!el)return;const R=CARDS.filter(c=>pass(c,key));
-  el.innerHTML=opts.map(([v,t,col])=>`<label class="box${col?" lab":""}"${col?` style="--c:${col}"`:""}><input type="checkbox" data-k="${key}" value="${esc(v)}"${F[key].has(v)?" checked":""}>${col?`<i class="sw" style="background:${col}"></i>`:""}${t} <span class="n">${R.filter(c=>fn(c)===v).length}</span></label>`).join("")}
+  el.innerHTML=opts.map(([v,t,col])=>`<label class="box${col?" lab":""}"${col?` style="--c:${col}"`:""}><input type="checkbox" data-k="${key}" value="${esc(v)}"${F[key].has(v)?" checked":""}>${col?`<i class="sw" style="background:${col}"></i>`:""}${key==="land"?flag(v):key==="taal"?flag(TFLAG[v]):""}${t} <span class="n">${R.filter(c=>fn(c)===v).length}</span></label>`).join("")}
 function panel(){seen("taal",vals(taalOf));seen("land",vals(landOf));
   {const R=CARDS.filter(c=>pass(c,"pkg")),n=v=>R.filter(c=>pkgOf(c)===v).length;
    const o=(v,nm)=>`<label class="box"><input type="checkbox" data-k="pkg" value="${v}"${F.pkg.has(v)?" checked":""}><span class="mi ${v}">${IC[v]}</span>${nm} <span class="n">${n(v)}</span></label>`;
