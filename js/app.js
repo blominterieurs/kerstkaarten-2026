@@ -11,7 +11,16 @@ const LC=Object.fromEntries(LABS);
 const labOf=c=>c.seg||"Onbekend";
 const LABV=[...LABS.map(l=>l[0]),...(CARDS.some(c=>!c.seg)?["Onbekend"]:[])];
 const AMS=[...new Set(CARDS.map(c=>c.am||"Onbekend"))].sort();
-const F={pkg:new Set(["kaart","taart","wijn"]),lab:new Set(LABV),am:new Set(AMS),chg:new Set()};let show=50;
+// taal van de kaarttekst: afgeleid uit de tekst zelf (ook na een aanpassing), anders het veld taal
+const TAALN={NL:"Nederlands",DE:"Duits",EN:"Engels"};
+function taalOf(c){const t=String(c.txt||"");if(/\b(im Namen|Sehr geehrte|Liebe[rs]? |Frohe Weihnachten|Herzliche)/i.test(t))return "Duits";if(/\b(on behalf of|Dear |Merry Christmas|Kind regards)/i.test(t))return "Engels";if(/\b(namens|Beste |Geachte |Fijne kerstdagen|Hartelijke groet)/i.test(t))return "Nederlands";return TAALN[c.taal]||"Nederlands"}
+const landOf=c=>{const l=String(c.land||"").trim();return l?l.charAt(0).toUpperCase()+l.slice(1):"Nederland"};
+const ORDER=v=>v==="Nederland"||v==="Nederlands"?"0":"1"+v;
+const vals=fn=>[...new Set(CARDS.map(fn))].sort((a,b)=>ORDER(a).localeCompare(ORDER(b),"nl"));
+// nieuwe talen of landen (bijv. via een toegevoegde kaart) staan standaard aan
+const SEEN={taal:new Set(),land:new Set()};
+function seen(key,list){list.forEach(v=>{if(!SEEN[key].has(v)){SEEN[key].add(v);F[key].add(v)}});return list}
+const F={pkg:new Set(["kaart","taart","wijn"]),lab:new Set(LABV),am:new Set(AMS),chg:new Set(),taal:new Set(),land:new Set()};let show=50;
 const $=id=>document.getElementById(id);
 const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const addrText=c=>[c.org,c.cp&&!/^Team /.test(c.cp)?c.cp:"",c.adr,[c.pc,c.plaats].filter(Boolean).join(" "),c.land!=="Nederland"?c.land.toUpperCase():""].filter(Boolean).join("\n");
@@ -24,16 +33,18 @@ function copy(text,btn,msg){
 const pkgOf=c=>c.adv!=="stuur"?"niet":(c.gift||"kaart");
 const amOf=c=>c.am||"Onbekend";
 function qOK(c){const q=$("q").value.trim().toLowerCase();return !q||[c.org,c.cp,c.pc,c.plaats,c.adr].join(" ").toLowerCase().includes(q)}
-const pass=(c,skip)=>qOK(c)&&(skip==="pkg"||F.pkg.has(pkgOf(c)))&&(skip==="lab"||F.lab.has(labOf(c)))&&(skip==="am"||F.am.has(amOf(c)))&&(skip==="chg"||!F.chg.has("ja")||!!(c._e&&c._e.hist&&c._e.hist.length));
+const pass=(c,skip)=>qOK(c)&&(skip==="pkg"||F.pkg.has(pkgOf(c)))&&(skip==="lab"||F.lab.has(labOf(c)))&&(skip==="am"||F.am.has(amOf(c)))&&(skip==="chg"||!F.chg.has("ja")||!!(c._e&&c._e.hist&&c._e.hist.length))&&(skip==="taal"||F.taal.has(taalOf(c)))&&(skip==="land"||F.land.has(landOf(c)));
 function boxes(el,key,opts,fn){const R=CARDS.filter(c=>pass(c,key));
   el.innerHTML=opts.map(([v,t,col])=>`<label class="box${col?" lab":""}"${col?` style="--c:${col}"`:""}><input type="checkbox" data-k="${key}" value="${esc(v)}"${F[key].has(v)?" checked":""}>${col?`<i class="sw" style="background:${col}"></i>`:""}${t} <span class="n">${R.filter(c=>fn(c)===v).length}</span></label>`).join("")}
-function panel(){
+function panel(){seen("taal",vals(taalOf));seen("land",vals(landOf));
   {const R=CARDS.filter(c=>pass(c,"pkg")),n=v=>R.filter(c=>pkgOf(c)===v).length;
    const o=(v,nm)=>`<label class="box"><input type="checkbox" data-k="pkg" value="${v}"${F.pkg.has(v)?" checked":""}><span class="mi ${v}">${IC[v]}</span>${nm} <span class="n">${n(v)}</span></label>`;
    $("fPkg").innerHTML=`<div class="side"><h4>Versturen · <b>${n("kaart")+n("taart")+n("wijn")}</b></h4><div class="row">${o("kaart","Alleen kaart")}${o("taart","Kaart + taart")}${o("wijn","Kaart + wijn")}</div></div><span class="sep"></span><div class="side"><h4>Niet versturen · <b>${n("niet")}</b></h4><div class="row">${o("niet","Geen kaart")}</div></div>`;}
   boxes($("fLab"),"lab",LABV.map(l=>[l,l,LC[l]||"#DEDED8"]),labOf);
   boxes($("fAm"),"am",AMS.map(a=>[a,a]),amOf);
   boxes($("fChg"),"chg",[["ja","Alleen aangepaste kaarten"]],c=>c._e&&c._e.hist&&c._e.hist.length?"ja":"nee");
+  boxes($("fTaal"),"taal",vals(taalOf).map(v=>[v,v]),taalOf);
+  boxes($("fLand"),"land",vals(landOf).map(v=>[v,v]),landOf);
 }
 function sel(){return CARDS.filter(c=>pass(c))}
 const IB={fs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',fsx:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>',zin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6M7.5 10.5h6"/></svg>',zout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6"/></svg>',open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 13h16v7H4z"/><path d="M4 13 7 4h10l3 9"/></svg>',reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M5.5 15a7 7 0 1 0 1.6-7.3L4 10"/></svg>',copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 8h12v12H8z"/><path d="M16 8V4H4v12h4"/></svg>'};
@@ -51,7 +62,7 @@ function card(c){const i=CARDS.indexOf(c),s=c.adv==="stuur";const cp=c.cp&&!/^Te
  return `<article class="card${s?"":" niet"}"${col?` style="--c:${col}"`:""}>
   <div class="who">
    <div class="top"><div class="t"><h2>${mk(c,"org",esc(c.org))}</h2>${c.seg?`<span class="lbl"><i></i>Blom ${esc(c.seg)}</span>`:""}</div><div class="pr">${pkg(c)}<span class="price" title="${c.adv!=="stuur"?"Geen kosten":"Excl. btw · kaart "+eur(PRIJS.kaart)+(c.gift?" + "+(c.gift==="wijn"?"wijn":"taart")+" "+eur(PRIJS[c.gift]):"")}">${eur(costOf(c))}</span></div></div>
-   <div class="metar"><div class="meta"><span>${s?"Kaart komt van":"Afzender (als je toch stuurt)"} <b>${esc(c.am||"Onbekend")}</b></span><span>Eerder een kaart: <b>${hist(c)}</b></span></div>${CANEDIT?`<button class="edbtn" type="button" data-ed="${i}">${IB.pen}Pas kaart aan</button>`:""}</div>
+   <div class="metar"><div class="meta"><span>${s?"Kaart komt van":"Afzender (als je toch stuurt)"} <b>${esc(c.am||"Onbekend")}</b></span><span>Eerder een kaart: <b>${hist(c)}</b></span><span>Taal kaart: <b>${esc(taalOf(c))}</b></span><span>Land bestemming: <b>${mk(c,"land",esc(landOf(c)))}</b></span></div>${CANEDIT?`<button class="edbtn" type="button" data-ed="${i}">${IB.pen}Pas kaart aan</button>`:""}</div>
    ${c._new?`<div class="chgline"><span class="chgtag">+ Toegevoegd</span> <span class="ednote" style="display:inline">door <b ${c._new.naam?"":`data-uid="${esc(c._new.by||"")}"`}>${esc(c._new.naam||"iemand")}</b> op ${fdt(c._new.at)}</span></div>`:""}
    ${c._e&&c._e.hist&&c._e.hist.length?`<div class="chgline"><span class="chgtag">${IB.pen}${c._e.cur&&Object.keys(c._e.cur).length?"Aangepast":"Teruggezet naar origineel"}</span> <span class="ednote" style="display:inline">laatst door <b ${last(c).naam?"":`data-uid="${esc(last(c).by||"")}"`}>${esc(last(c).naam||"iemand")}</b> op ${fdt(last(c).at)}</span></div>`:""}
    <div class="addr" title="Zo komt het adres op de envelop"><div>${mk(c,"org",esc(c.org))}</div>${cp?`<div>${tavp(c)}${mk(c,"cp",esc(tav(cp)))}</div>`:""}<div>${mk(c,"adr",esc(c.adr))}</div><div>${mk(c,"pc",esc(pcf(c)))}&nbsp;&nbsp;${mk(c,"plaats",esc((c.plaats||"").toUpperCase()))}</div>${c.land&&c.land!=="Nederland"?`<div>${mk(c,"land",esc(c.land.toUpperCase()))}</div>`:""}</div>${c.fn&&cp?`<div class="fnl">Functie contactpersoon: ${mk(c,"fn",esc(c.fn))}</div>`:""}
@@ -76,7 +87,8 @@ function render(){panel();const L=sel();budget(L);
   const pk=[...F.pkg].map(k=>P[k]).join(", ")||"niets aangevinkt";
   const lb=F.lab.size===LABV.length?"alle labels":(!F.lab.has("Care")&&F.lab.size===LABV.length-1)?"alles behalve Care":F.lab.size?[...F.lab].join(", "):"geen label";
   const af=F.am.size===AMS.length?"alle afzenders":F.am.size?[...F.am].join(", "):"geen afzender";
-  $("now").innerHTML=`Je ziet nu <b>${L.length} relatie${L.length===1?"":"s"}</b> · ${pk} · ${lb} · ${af}`;
+  const sub=(k,w)=>F[k].size>=SEEN[k].size?"":F[k].size?" · "+w+" "+[...F[k]].join(", "):" · geen "+w;
+  $("now").innerHTML=`Je ziet nu <b>${L.length} relatie${L.length===1?"":"s"}</b> · ${pk} · ${lb} · ${af}${sub("taal","taal")}${sub("land","land")}`;
   $("list").innerHTML=L.length?L.slice(0,show).map(card).join(""):`<p class="empty">Geen relaties in deze selectie.</p>`;
   const m=$("more");m.hidden=L.length<=show;m.textContent=`Toon meer (${L.length-show} over)`;fitAll();fillNames()}
 function fit(p){p.style.fontSize="";let s=parseFloat(getComputedStyle(p).fontSize);while(s>5&&p.scrollHeight>p.clientHeight+1){s-=.25;p.style.fontSize=s+"px"}}
@@ -199,6 +211,7 @@ async function startOpslag(db,u){try{UQ=u;if(!db)return;DB=db;
 if(window.claude)(async()=>{try{const [db,u]=await Promise.all([claude.use("db"),claude.use("user")]);startOpslag(db,u)}catch(_){}})();
 else if(window.KERST)KERST.koppel(startOpslag);
 const reset=()=>{show=50;render()};
+document.querySelector(".panel").addEventListener("click",e=>{const b=e.target.closest("[data-alls]");if(!b)return;const k=b.dataset.alls;F[k]=b.dataset.v==="1"?new Set(SEEN[k]):new Set();reset()});
 document.querySelector(".panel").addEventListener("change",e=>{const i=e.target;if(!i.dataset||!i.dataset.k)return;const s=F[i.dataset.k];i.checked?s.add(i.value):s.delete(i.value);reset()});
 $("qLab").onclick=e=>{const b=e.target.closest("[data-lab]");if(!b)return;const v=b.dataset.lab;F.lab=new Set(v==="all"?LABV:v==="care"?["Care"]:LABV.filter(l=>l!=="Care"));reset()};
 document.querySelector("#fAm").closest(".grp").querySelector(".quick").onclick=e=>{const b=e.target.closest("[data-all]");if(!b)return;F.am=b.dataset.all==="1"?new Set(AMS):new Set();reset()};
@@ -225,10 +238,10 @@ $("xls").onclick=async()=>{const btn=$("xls");btn.disabled=true;try{
  const nm=(id,n)=>n||(ps[id]&&ps[id].name)||"onbekend";const pk=c=>c.adv!=="stuur"?"Geen kaart":c.gift==="taart"?"Kaart + taart":c.gift==="wijn"?"Kaart + wijn":"Alleen kaart";
  const ord={"Kaart + taart":0,"Kaart + wijn":1,"Alleen kaart":2,"Geen kaart":3};
  const L=[...CARDS].sort((x,y)=>ord[pk(x)]-ord[pk(y)]||x.seg.localeCompare(y.seg)||x.org.localeCompare(y.org));
- const H=["Wat sturen we","Versturen","Taart","Wijn","Label","Afzender","Adres op envelop","Organisatie","Contactpersoon","Functie","Adres","Postcode","Plaats","Land","Kaart 2024","Kaart 2025","Handgeschreven tekst","Tekens","Waarom (kaart, geschenk of geen kaart)","Waarom deze organisatie","Waarom deze contactpersoon","Meer kaarten in deze organisatie","Geschenk in deze organisatie","Waarom deze tekst","Achtergrond","Let op","Aangepast","Laatst aangepast door","Laatst aangepast op","Kosten (€)"];
+ const H=["Wat sturen we","Versturen","Taart","Wijn","Label","Afzender","Adres op envelop","Organisatie","Contactpersoon","Functie","Adres","Postcode","Plaats","Land bestemming","Taal kaarttekst","Kaart 2024","Kaart 2025","Handgeschreven tekst","Tekens","Waarom (kaart, geschenk of geen kaart)","Waarom deze organisatie","Waarom deze contactpersoon","Meer kaarten in deze organisatie","Geschenk in deze organisatie","Waarom deze tekst","Achtergrond","Let op","Aangepast","Laatst aangepast door","Laatst aangepast op","Kosten (€)"];
  const rows=L.map(c=>{const s=c.adv==="stuur",e=c._e&&c._e.hist&&c._e.hist.length?c._e.hist[c._e.hist.length-1]:null;
-  return [pk(c),s?"ja":"nee",s&&c.gift==="taart"?"ja":"nee",s&&c.gift==="wijn"?"ja":"nee",c.seg,c.am,envText(c),c.org,/^Team /.test(c.cp)?"":c.cp,c.fn,c.adr,c.pc,c.plaats,c.land,c.yrs.includes(2024)?"ja":"nee",c.yrs.includes(2025)?"ja":"nee",c.txt,c.txt.length,s?(c.gift?c.giftwhy:(c.kw||"")):c.nw,...(s&&c.ux?[c.ux.org,c.ux.cp,c.ux.meer,c.ux.gift,c.ux.tekst]:["","","","",""]),c.pts.join("\n"),c.flags.join("\n"),e?"ja":"nee",e?nm(e.by,e.naam):"",e?new Date(e.at).toLocaleString("nl-NL"):"",costOf(c)]});
- const ws=XLSX.utils.aoa_to_sheet([H,...rows]);ws["!cols"]=[16,10,7,7,14,18,40,34,26,22,30,10,18,12,10,10,60,8,50,60,60,60,60,80,50,40,10,20,18].map(w=>({wch:w}));ws["!autofilter"]={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:H.length-1}})};ws["!freeze"]={xSplit:0,ySplit:1};
+  return [pk(c),s?"ja":"nee",s&&c.gift==="taart"?"ja":"nee",s&&c.gift==="wijn"?"ja":"nee",c.seg,c.am,envText(c),c.org,/^Team /.test(c.cp)?"":c.cp,c.fn,c.adr,c.pc,c.plaats,landOf(c),taalOf(c),c.yrs.includes(2024)?"ja":"nee",c.yrs.includes(2025)?"ja":"nee",c.txt,c.txt.length,s?(c.gift?c.giftwhy:(c.kw||"")):c.nw,...(s&&c.ux?[c.ux.org,c.ux.cp,c.ux.meer,c.ux.gift,c.ux.tekst]:["","","","",""]),c.pts.join("\n"),c.flags.join("\n"),e?"ja":"nee",e?nm(e.by,e.naam):"",e?new Date(e.at).toLocaleString("nl-NL"):"",costOf(c)]});
+ const ws=XLSX.utils.aoa_to_sheet([H,...rows]);ws["!cols"]=[16,10,7,7,14,18,40,34,26,22,30,10,18,14,12,10,10,60,8,50,60,60,60,60,80,50,40,10,20,18].map(w=>({wch:w}));ws["!autofilter"]={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:H.length-1}})};ws["!freeze"]={xSplit:0,ySplit:1};
  const LH=["Datum","Door","Organisatie","Contactpersoon (origineel)","Veld","Oud","Nieuw","Toelichting"],log=[];
  CARDS.forEach((c,i)=>{if(!(c._e&&c._e.hist))return;c._e.hist.forEach(h=>(h.changes||[]).forEach(ch=>log.push([new Date(h.at).toLocaleString("nl-NL"),nm(h.by,h.naam),BASE[i].org,BASE[i].cp,EFL[ch.f]||ch.f,fv(ch.f,ch.from),fv(ch.f,ch.to),h.note||""])))});
  const ws2=XLSX.utils.aoa_to_sheet([LH,...log]);ws2["!cols"]=[18,20,34,26,18,50,50,40].map(w=>({wch:w}));
