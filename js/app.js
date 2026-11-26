@@ -6,14 +6,14 @@ const PRIJS=GEGEVENS.prijs,DONATIE=GEGEVENS.donatie;
 const eur0=n=>"€\u00a0"+n.toLocaleString("nl-NL",Number.isInteger(Math.round(n*100)/100)?{maximumFractionDigits:0}:{minimumFractionDigits:2,maximumFractionDigits:2});
 const eur=n=>"ca. "+eur0(n);
 const costOf=c=>c.adv!=="stuur"?0:PRIJS.kaart+(c.gift==="wijn"?PRIJS.wijn:c.gift==="taart"?PRIJS.taart:0);
-const LABS=[["Care","#FFB990"],["Hospitality","#F09491"],["Leisure","#91D6AC"],["Student housing","#FED880"],["Smart living","#BFCED6"]];
+const LABS=[["Care","#FFB990"],["Hospitality","#F09491"],["Leisure","#91D6AC"],["Student housing","#FED880"],["Smart living","#BFCED6"],["Beurs Salzburg","#D3C4E8"]];
 const LC=Object.fromEntries(LABS);
 const labOf=c=>c.seg||"Onbekend";
 const LABV=[...LABS.map(l=>l[0]),...(CARDS.some(c=>!c.seg)?["Onbekend"]:[])];
 const AMS=[...new Set(CARDS.map(c=>c.am||"Onbekend"))].sort();
 // taal van de kaarttekst: afgeleid uit de tekst zelf (ook na een aanpassing), anders het veld taal
-const TAALN={NL:"Nederlands",DE:"Duits",EN:"Engels"};
-function taalOf(c){const t=String(c.txt||"");if(/\b(im Namen|Sehr geehrte|Liebe[rs]? |Frohe Weihnachten|Herzliche)/i.test(t))return "Duits";if(/\b(on behalf of|Dear |Merry Christmas|Kind regards)/i.test(t))return "Engels";if(/\b(namens|Beste |Geachte |Fijne kerstdagen|Hartelijke groet)/i.test(t))return "Nederlands";return TAALN[c.taal]||"Nederlands"}
+const TAALN={NL:"Nederlands",DE:"Duits",EN:"Engels",SL:"Sloveens"};
+function taalOf(c){const t=String(c.txt||"");if(/\b(Spoštovani|Vesel božič|Lep pozdrav|v imenu)/i.test(t))return "Sloveens";if(/\b(im Namen|Sehr geehrte|Liebe[rs]? |Frohe Weihnachten|Herzliche)/i.test(t))return "Duits";if(/\b(on behalf of|Dear |Merry Christmas|Kind regards)/i.test(t))return "Engels";if(/\b(namens|Beste |Geachte |Fijne kerstdagen|Hartelijke groet)/i.test(t))return "Nederlands";return TAALN[c.taal]||"Nederlands"}
 const landOf=c=>{const l=String(c.land||"").trim();return l?l.charAt(0).toUpperCase()+l.slice(1):"Nederland"};
 const ORDER=v=>v==="Nederland"||v==="Nederlands"?"0":"1"+v;
 const vals=fn=>[...new Set(CARDS.map(fn))].sort((a,b)=>ORDER(a).localeCompare(ORDER(b),"nl"));
@@ -52,9 +52,11 @@ const IC={kaart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 function pkg(c){if(c.adv!=="stuur")return `<span class="pkg niet">${IC.niet}Geen kaart</span>`;if(c.gift==="taart")return `<button type="button" class="pkg taart pkgb" data-gift="taart" title="Bekijk de taart">${IC.taart}Kaart + taart<span class="eye">${IB.eye}</span></button>`;if(c.gift==="wijn")return `<button type="button" class="pkg wijn pkgb" data-gift="wijn" title="Bekijk het wijngeschenk">${IC.wijn}Kaart + wijn<span class="eye">${IB.eye}</span></button>`;return `<span class="pkg kaart">${IC.kaart}Alleen kaart</span>`}
 function hist(c){const a=c.yrs.includes(2024),b=c.yrs.includes(2025);return a&&b?"in 2024 en 2025":a?"alleen in 2024":b?"alleen in 2025":"nog nooit (nieuw)"}
 function tav(n){return String(n).replace(/^t\.a\.v\.?\s+/i,"").replace(/^Das\s+/,"").replace(/^dhr\.?\s+/i,"de heer ").replace(/^mevr\.?\s+/i,"mevrouw ").replace(/^mw\.?\s+/i,"mevrouw ").replace(/^dhr\/mevr\.?\s+/i,"").replace(/\s+/g," ").trim()}
-function tavp(c){return /^(Duitsland|Oostenrijk|Zwitserland)$/i.test(c.land||"")?"z. Hd. ":"T.a.v. "}
+// aanhef op de envelop in de taal van het land van bestemming (Duitstalig Zuid-Tirol of Rome: volgt de kaarttekst)
+function tavp(c){const l=c.land||"";if(/^(Duitsland|Oostenrijk|Zwitserland)$/i.test(l)||(l==="Italië"&&taalOf(c)==="Duits"))return "z. Hd. ";if(l==="Slovenië")return "N/r ";if(l==="Verenigd Koninkrijk")return "Attn. ";return "T.a.v. "}
+function envNaam(c,cp){const n=tav(cp);return tavp(c)==="z. Hd. "?n.replace(/^Herr /,"Herrn "):n}
 function pcf(c){const p=String(c.pc||"").trim().toUpperCase();const m=p.match(/^(\d{4})\s*([A-Z]{2})$/);return (!c.land||c.land==="Nederland")&&m?m[1]+" "+m[2]:p}
-function envText(c){const cp=c.cp&&!/^Team /.test(c.cp)?c.cp:"";return [c.org,cp?tavp(c)+tav(cp):"",c.adr,pcf(c)+"  "+(c.plaats||"").toUpperCase(),c.land&&c.land!=="Nederland"?c.land.toUpperCase():""].filter(Boolean).join("\n")}
+function envText(c){const cp=c.cp&&!/^Team /.test(c.cp)?c.cp:"";return [c.org,cp?tavp(c)+envNaam(c,cp):"",c.adr,pcf(c)+"  "+(c.plaats||"").toUpperCase(),c.land&&c.land!=="Nederland"?c.land.toUpperCase():""].filter(Boolean).join("\n")}
 function hwHTML(s){const L=String(s||"").split("\n");if(L.length<4)return esc(s);return `<span class="hwa">${esc(L[0])}</span><span class="hwb">${esc(L.slice(1,-2).join("\n"))}</span><span class="hwc">${esc(L.slice(-2).join("\n"))}</span>`}
 function card(c){const i=CARDS.indexOf(c),s=c.adv==="stuur";const cp=c.cp&&!/^Team /.test(c.cp)?c.cp:"";const col=LC[c.seg]||"";
  const UXL=[["org","Waarom deze organisatie"],["cp","Waarom deze contactpersoon"],["meer","Meer kaarten in deze organisatie?"],["gift","Geschenk in deze organisatie?"],["tekst","Waarom deze tekst"]];const ux=s&&c.ux?`<dl class="ux">${UXL.filter(([k])=>c.ux[k]).map(([k,l])=>`<dt>${l}</dt><dd>${esc(c.ux[k])}</dd>`).join("")}</dl>`:"";const bg=[...c.pts.map(p=>`<li>${esc(p)}</li>`),...c.flags.map(f=>`<li class="f">Let op: ${esc(f)}</li>`)];
@@ -65,7 +67,7 @@ function card(c){const i=CARDS.indexOf(c),s=c.adv==="stuur";const cp=c.cp&&!/^Te
    <div class="metar"><div class="meta"><span>${s?"Kaart komt van":"Afzender (als je toch stuurt)"} <b>${esc(c.am||"Onbekend")}</b></span><span>Eerder een kaart: <b>${hist(c)}</b></span><span>Taal kaart: <b>${esc(taalOf(c))}</b></span><span>Land bestemming: <b>${mk(c,"land",esc(landOf(c)))}</b></span></div>${CANEDIT?`<button class="edbtn" type="button" data-ed="${i}">${IB.pen}Pas kaart aan</button>`:""}</div>
    ${c._new?`<div class="chgline"><span class="chgtag">+ Toegevoegd</span> <span class="ednote" style="display:inline">door <b ${c._new.naam?"":`data-uid="${esc(c._new.by||"")}"`}>${esc(c._new.naam||"iemand")}</b> op ${fdt(c._new.at)}</span></div>`:""}
    ${c._e&&c._e.hist&&c._e.hist.length?`<div class="chgline"><span class="chgtag">${IB.pen}${c._e.cur&&Object.keys(c._e.cur).length?"Aangepast":"Teruggezet naar origineel"}</span> <span class="ednote" style="display:inline">laatst door <b ${last(c).naam?"":`data-uid="${esc(last(c).by||"")}"`}>${esc(last(c).naam||"iemand")}</b> op ${fdt(last(c).at)}</span></div>`:""}
-   <div class="addr" title="Zo komt het adres op de envelop"><div>${mk(c,"org",esc(c.org))}</div>${cp?`<div>${tavp(c)}${mk(c,"cp",esc(tav(cp)))}</div>`:""}<div>${mk(c,"adr",esc(c.adr))}</div><div>${mk(c,"pc",esc(pcf(c)))}&nbsp;&nbsp;${mk(c,"plaats",esc((c.plaats||"").toUpperCase()))}</div>${c.land&&c.land!=="Nederland"?`<div>${mk(c,"land",esc(c.land.toUpperCase()))}</div>`:""}</div>${c.fn&&cp?`<div class="fnl">Functie contactpersoon: ${mk(c,"fn",esc(c.fn))}</div>`:""}
+   <div class="addr" title="Zo komt het adres op de envelop"><div>${mk(c,"org",esc(c.org))}</div>${cp?`<div>${tavp(c)}${mk(c,"cp",esc(envNaam(c,cp)))}</div>`:""}<div>${mk(c,"adr",esc(c.adr))}</div><div>${mk(c,"pc",esc(pcf(c)))}&nbsp;&nbsp;${mk(c,"plaats",esc((c.plaats||"").toUpperCase()))}</div>${c.land&&c.land!=="Nederland"?`<div>${mk(c,"land",esc(c.land.toUpperCase()))}</div>`:""}</div>${c.fn&&cp?`<div class="fnl">Functie contactpersoon: ${mk(c,"fn",esc(c.fn))}</div>`:""}
    ${s&&c.gift?`<div class="gcard ${c.gift}"><button type="button" class="gthumb gimg ${c.gift}" data-gift="${c.gift}" aria-label="Bekijk ${c.gift==="wijn"?"het wijngeschenk":"de taart"} groot"></button><div class="gtx2"><span class="gk2">Geschenk</span><b>${GIFT[c.gift].name}</b><span class="gd2">${esc(GIFT[c.gift].short)}</span></div><button type="button" class="gbtn" data-gift="${c.gift}">${IB.eye}Bekijk</button></div><p class="why1 ${c.gift}"><b>${one[1]}:</b> ${esc(one[2])}</p>`:one?`<p class="why1 ${one[0]}"><b>${one[1]}:</b> ${esc(one[2])}</p>`:""}
    ${histHTML(c)}
    ${bg.length||ux?`<details class="more2"><summary>Toelichting en achtergrond${c.flags.length?` <span class="wf">· ${c.flags.length} let op</span>`:""}</summary>${ux}${bg.length?`<div class="uxh">Gegevens</div><ul>${bg.join("")}</ul>`:""}</details>`:""}
